@@ -6,6 +6,7 @@ from esphome.components import i2c, touchscreen
 from esphome.const import (
   CONF_ID,
   CONF_RESET_PIN
+  CONF_INTERRUPT_PIN
 )
 from .. import axs15231_ns
 
@@ -22,6 +23,7 @@ CONFIG_SCHEMA = touchscreen.TOUCHSCREEN_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(AXS15231Touchscreen),
         cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
+        cv.Optional(CONF_INTERRUPT_PIN): pins.gpio_input_pin_schema,
     }
 ).extend(i2c.i2c_device_schema(0x3B))
 
@@ -33,3 +35,5 @@ async def to_code(config):
 
     if reset_pin := config.get(CONF_RESET_PIN):
         cg.add(var.set_reset_pin(await cg.gpio_pin_expression(reset_pin)))
+    if interrupt_pin := config.get(CONF_INTERRUPT_PIN):
+        cg.add(var.set_interrupt_pin(await cg.gpio_pin_expression(interrupt_pin)))
