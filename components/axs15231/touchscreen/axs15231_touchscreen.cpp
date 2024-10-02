@@ -47,15 +47,15 @@ void AXS15231Touchscreen::update_touches() {
   y = AXS_GET_POINT_Y(buff, 0);
   w = AXS_GET_WEIGHT(buff);
 	
-	//Log touch weight for testing
-	ESP_LOGI(TAG, "Touch Weight: %d", w);
+
 	
   if ((x == 0 && y == 0) || AXS_GET_GESTURE_TYPE(buff) != 0) {
 		return;
-  } else if (w < 128) { //attempt to filter touch events below weight threshhold. 
+  } else if (w > 10) { //attempt to filter touch events below weight threshhold. 
 		return;
 	}
-
+  	//Log touch weight for testing
+  ESP_LOGI(TAG, "Touch Weight: %d", w);
   this->add_raw_touch_position_(0, x, y);
 }
 
