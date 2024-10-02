@@ -62,7 +62,7 @@ void AXS15231Touchscreen::update_touches() {
   }  else  {
     ESP_LOGI(TAG, "Touch Weight: %d", w); 	//Log touch weight for testing
   }
-  if (w < 40) { //attempt to filter touch events below weight threshhold. 
+  if (w < 66) { //attempt to filter touch events below weight threshhold. 
 
     this->add_raw_touch_position_(0, x, y);
     //ESP_LOGI(TAG, "Touch Weight: %d", w);
