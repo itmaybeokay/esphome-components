@@ -21,6 +21,10 @@ static const uint8_t AXS_TOUCH_DATA_SIZE   = 0x08;
 
 #define AXS_GET_POINT_NUM(buf) buf[AXS_TOUCH_POINT_NUM]
 #define AXS_GET_GESTURE_TYPE(buf)  buf[AXS_TOUCH_GESTURE_POS]
+
+//Get Weight
+#define AXS_GET_WEIGHT(buf) buf[AXS_TOUCH_WEIGHT_POS]
+
 #define AXS_GET_POINT_X(buf,point_index) (((uint16_t)(buf[AXS_TOUCH_ONE_POINT_LEN*point_index+AXS_TOUCH_XPOSH] & 0x0F) <<8) + (uint16_t)buf[AXS_TOUCH_ONE_POINT_LEN*point_index+AXS_TOUCH_XPOSL])
 #define AXS_GET_POINT_Y(buf,point_index) (((uint16_t)(buf[AXS_TOUCH_ONE_POINT_LEN*point_index+AXS_TOUCH_YPOSH] & 0x0F) <<8) + (uint16_t)buf[AXS_TOUCH_ONE_POINT_LEN*point_index+AXS_TOUCH_YPOSL])
 #define AXS_GET_POINT_EVENT(buf,point_index) (buf[AXS_TOUCH_ONE_POINT_LEN*point_index+AXS_TOUCH_EVENT_POS] >> 6)
