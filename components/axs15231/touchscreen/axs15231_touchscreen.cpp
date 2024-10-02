@@ -35,6 +35,7 @@ void AXS15231Touchscreen::update_touches() {
   bool touched = false;
   uint8_t buff[AXS_TOUCH_DATA_SIZE];
   u_int16_t x, y;
+	u_int8_t w;
 
   err = this->write(AXS_READ_TOUCHPAD, sizeof(AXS_READ_TOUCHPAD), false);
   I2C_ERROR_CHECK(err);
@@ -44,10 +45,16 @@ void AXS15231Touchscreen::update_touches() {
 
   x = AXS_GET_POINT_X(buff, 0);
   y = AXS_GET_POINT_Y(buff, 0);
-
+  w = AXS_GET_WEIGHT(buff);
+	
+	//Log touch weight for testing
+	ESP_LOGI(TAG, "Touch Weight: %d", w);
+	
   if ((x == 0 && y == 0) || AXS_GET_GESTURE_TYPE(buff) != 0) {
-    return;
-  }
+		return;
+  } else if (w < 128) { //attempt to filter touch events below weight threshhold. 
+		return;
+	}
 
   this->add_raw_touch_position_(0, x, y);
 }
