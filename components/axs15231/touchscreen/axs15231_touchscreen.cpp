@@ -1,6 +1,6 @@
 #include "axs15231_touchscreen.h"
 #include "axs15231_defines.h"
-
+#include "esphome/core/gpio.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
