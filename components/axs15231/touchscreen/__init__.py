@@ -5,7 +5,7 @@ from esphome import pins
 from esphome.components import i2c, touchscreen
 from esphome.const import (
   CONF_ID,
-  CONF_RESET_PIN
+  CONF_RESET_PIN,
   CONF_INTERRUPT_PIN
 )
 from .. import axs15231_ns
