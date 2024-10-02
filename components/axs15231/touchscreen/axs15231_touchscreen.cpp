@@ -36,7 +36,7 @@ void AXS15231Touchscreen::update_touches() {
   uint8_t buff[AXS_TOUCH_DATA_SIZE];
   u_int16_t x, y;
   u_int16_t w;
-  u_int16_t w2;
+  //u_int16_t w2;
 
   err = this->write(AXS_READ_TOUCHPAD, sizeof(AXS_READ_TOUCHPAD), false);
   I2C_ERROR_CHECK(err);
