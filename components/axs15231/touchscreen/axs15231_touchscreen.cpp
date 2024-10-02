@@ -24,7 +24,14 @@ void AXS15231Touchscreen::setup() {
     this->reset_pin_->digital_write(true);
     delay(2);
   }
-
+///INTERRUPT PIN ATTEMPT
+  if (this->interrupt_pin_ != nullptr) {
+    this->interrupt_pin_->setup();
+    this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+    this->interrupt_pin_->setup();
+    this->attach_interrupt_(this->interrupt_pin_, gpio::INTERRUPT_FALLING_EDGE);
+  }
+///END INTERRUPT PIN ATTEMPT
   this->x_raw_max_ = this->display_->get_width();
   this->y_raw_max_ = this->display_->get_height();
   ESP_LOGCONFIG(TAG, "AXS15231 Touchscreen setup complete");
