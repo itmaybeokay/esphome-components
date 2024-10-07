@@ -3,6 +3,7 @@
 #include "esphome/core/gpio.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "esphome/components/i2c/i2c.h"  // Include I2C header
 
 namespace esphome {
 namespace axs15231 {
@@ -13,26 +14,22 @@ namespace {
 } // anonymous namespace
 
 // Manufacturer-provided functions
-bool WriteC8D8(uint8_t c, uint8_t d, TwoWire *wire) {
-  if (wire->write(c) == 0) {
+bool WriteC8D8(uint8_t c, uint8_t d, esphome::i2c::I2CDevice *device) {
+  if (device->write_byte(c) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "->Write(c=0x%02X) fail", c);
     return false;
   }
-  if (wire->write(d) == 0) {
+  if (device->write_byte(d) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "->Write(d=0x%02X) fail", d);
     return false;
   }
   return true;
 }
 
-bool IIC_WriteC8D8(uint8_t device_address, uint8_t c, uint8_t d, TwoWire *wire) {
-  wire->beginTransmission(device_address);
-  if (!WriteC8D8(c, d, wire)) {
+bool IIC_WriteC8D8(uint8_t device_address, uint8_t c, uint8_t d, esphome::i2c::I2CDevice *device) {
+  device->set_address(device_address);
+  if (!WriteC8D8(c, d, device)) {
     ESP_LOGE(TAG, "->WriteC8D8(c=0x%02X, d=0x%02X) fail", c, d);
-    return false;
-  }
-  if (wire->endTransmission() != 0) {
-    ESP_LOGE(TAG, "->EndTransmission() fail");
     return false;
   }
   return true;
@@ -50,44 +47,41 @@ void AXS15231Touchscreen::setup() {
     this->reset_pin_->digital_write(true);
     delay(2);
   }
-///INTERRUPT PIN ATTEMPT
+
   if (this->interrupt_pin_ != nullptr) {
     this->interrupt_pin_->setup();
     this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
-    this->interrupt_pin_->setup();
     this->attach_interrupt_(this->interrupt_pin_, gpio::INTERRUPT_FALLING_EDGE);
   }
-///END INTERRUPT PIN ATTEMPT
+
   this->x_raw_max_ = this->display_->get_width();
   this->y_raw_max_ = this->display_->get_height();
 
-  // Initialize I2C if not already initialized
-  this->i2c_->begin();
+  // Set the I2C device address
+  this->set_address(0x6A);
 
-  // Perform the I2C writes as per manufacturer instructions
   // Disable ILIM
-  if (!IIC_WriteC8D8(0x6A, 0x00, 0b00111111, this->i2c_)) {
+  if (!IIC_WriteC8D8(0x6A, 0x00, 0b00111111, this)) {
     ESP_LOGE(TAG, "Failed to disable ILIM and set current limit");
   } else {
     ESP_LOGI(TAG, "Successfully disabled ILIM and set current limit");
   }
+
   // Disable BATFET
-  if (!IIC_WriteC8D8(0x6A, 0x09, 0b01100100, this->i2c_)) {
+  if (!IIC_WriteC8D8(0x6A, 0x09, 0b01100100, this)) {
     ESP_LOGE(TAG, "Failed to turn off BATFET");
   } else {
     ESP_LOGI(TAG, "Successfully turned off BATFET");
   }
-	
+
   ESP_LOGCONFIG(TAG, "AXS15231 Touchscreen setup complete");
 }
 
 void AXS15231Touchscreen::update_touches() {
   i2c::ErrorCode err;
-  bool touched = false;
   uint8_t buff[AXS_TOUCH_DATA_SIZE];
-  u_int16_t x, y;
-  u_int16_t w;
-  //u_int16_t w2;
+  uint16_t x, y;
+  uint16_t w;
 
   err = this->write(AXS_READ_TOUCHPAD, sizeof(AXS_READ_TOUCHPAD), false);
   I2C_ERROR_CHECK(err);
@@ -98,20 +92,16 @@ void AXS15231Touchscreen::update_touches() {
   x = AXS_GET_POINT_X(buff, 0);
   y = AXS_GET_POINT_Y(buff, 0);
   w = AXS_GET_WEIGHT(buff);
-	
 
-	
   if ((x == 0 && y == 0) || AXS_GET_GESTURE_TYPE(buff) != 0) {
     return;
-  }  else  {
-    ESP_LOGI(TAG, "Touch Weight: %d", w); 	//Log touch weight for testing
+  } else {
+    ESP_LOGI(TAG, "Touch Weight: %d", w);
   }
-  if (w > 130) { //attempt to filter touch events below weight threshhold. 
+  if (w > 130) { // attempt to filter touch events below weight threshold.
     return;
   }
   this->add_raw_touch_position_(0, x, y);
-
-  
 }
 
 void AXS15231Touchscreen::dump_config() {
