@@ -1,6 +1,6 @@
 #include "axs15231_touchscreen.h"
 #include "axs15231_defines.h"
-
+#include "esphome/core/gpio.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
@@ -24,7 +24,14 @@ void AXS15231Touchscreen::setup() {
     this->reset_pin_->digital_write(true);
     delay(2);
   }
-
+///INTERRUPT PIN ATTEMPT
+  if (this->interrupt_pin_ != nullptr) {
+    this->interrupt_pin_->setup();
+    this->interrupt_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+    this->interrupt_pin_->setup();
+    this->attach_interrupt_(this->interrupt_pin_, gpio::INTERRUPT_FALLING_EDGE);
+  }
+///END INTERRUPT PIN ATTEMPT
   this->x_raw_max_ = this->display_->get_width();
   this->y_raw_max_ = this->display_->get_height();
   ESP_LOGCONFIG(TAG, "AXS15231 Touchscreen setup complete");
@@ -35,7 +42,8 @@ void AXS15231Touchscreen::update_touches() {
   bool touched = false;
   uint8_t buff[AXS_TOUCH_DATA_SIZE];
   u_int16_t x, y;
-  u_int8_t w;
+  u_int16_t w;
+  //u_int16_t w2;
 
   err = this->write(AXS_READ_TOUCHPAD, sizeof(AXS_READ_TOUCHPAD), false);
   I2C_ERROR_CHECK(err);
@@ -52,23 +60,12 @@ void AXS15231Touchscreen::update_touches() {
   if ((x == 0 && y == 0) || AXS_GET_GESTURE_TYPE(buff) != 0) {
     return;
   }  else  {
-    //ESP_LOGI(TAG, "Touch Weight: %d", w); 	//Log touch weight for testing
+    ESP_LOGI(TAG, "Touch Weight: %d", w); 	//Log touch weight for testing
   }
-  if (w < 40) { //attempt to filter touch events below weight threshhold. 
-    delay(100);
-    err = this->write(AXS_READ_TOUCHPAD, sizeof(AXS_READ_TOUCHPAD), false);
-    I2C_ERROR_CHECK(err);
-    err = this->read(buff, AXS_TOUCH_DATA_SIZE);
-    I2C_ERROR_CHECK(err);
-    //x = AXS_GET_POINT_X(buff, 0);
-    //y = AXS_GET_POINT_Y(buff, 0);
-    w2 = AXS_GET_WEIGHT(buff);
-    if (w2 <= w) { 
-      this->add_raw_touch_position_(0, x, y);
-      ESP_LOGI(TAG, "Touch Weight: %d", w);
-    }
+  if (w > 130) { //attempt to filter touch events below weight threshhold. 
+    return;
   }
-  
+  this->add_raw_touch_position_(0, x, y);
 
   
 }
