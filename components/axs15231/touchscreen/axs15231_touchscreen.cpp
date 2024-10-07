@@ -12,6 +12,32 @@ namespace {
   constexpr static const uint8_t AXS_READ_TOUCHPAD[11] = {0xb5, 0xab, 0xa5, 0x5a, 0x0, 0x0, 0x0, 0x8};
 } // anonymous namespace
 
+// Manufacturer-provided functions
+bool WriteC8D8(uint8_t c, uint8_t d, TwoWire *wire) {
+  if (wire->write(c) == 0) {
+    ESP_LOGE(TAG, "->Write(c=0x%02X) fail", c);
+    return false;
+  }
+  if (wire->write(d) == 0) {
+    ESP_LOGE(TAG, "->Write(d=0x%02X) fail", d);
+    return false;
+  }
+  return true;
+}
+
+bool IIC_WriteC8D8(uint8_t device_address, uint8_t c, uint8_t d, TwoWire *wire) {
+  wire->beginTransmission(device_address);
+  if (!WriteC8D8(c, d, wire)) {
+    ESP_LOGE(TAG, "->WriteC8D8(c=0x%02X, d=0x%02X) fail", c, d);
+    return false;
+  }
+  if (wire->endTransmission() != 0) {
+    ESP_LOGE(TAG, "->EndTransmission() fail");
+    return false;
+  }
+  return true;
+}
+
 void AXS15231Touchscreen::setup() {
   ESP_LOGCONFIG(TAG, "Setting up AXS15231 Touchscreen...");
 
@@ -34,6 +60,24 @@ void AXS15231Touchscreen::setup() {
 ///END INTERRUPT PIN ATTEMPT
   this->x_raw_max_ = this->display_->get_width();
   this->y_raw_max_ = this->display_->get_height();
+
+  // Initialize I2C if not already initialized
+  this->i2c_->begin();
+
+  // Perform the I2C writes as per manufacturer instructions
+  // Disable ILIM
+  if (!IIC_WriteC8D8(0x6A, 0x00, 0b00111111, this->i2c_)) {
+    ESP_LOGE(TAG, "Failed to disable ILIM and set current limit");
+  } else {
+    ESP_LOGI(TAG, "Successfully disabled ILIM and set current limit");
+  }
+  // Disable BATFET
+  if (!IIC_WriteC8D8(0x6A, 0x09, 0b01100100, this->i2c_)) {
+    ESP_LOGE(TAG, "Failed to turn off BATFET");
+  } else {
+    ESP_LOGI(TAG, "Successfully turned off BATFET");
+  }
+	
   ESP_LOGCONFIG(TAG, "AXS15231 Touchscreen setup complete");
 }
 
